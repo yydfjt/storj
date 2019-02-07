@@ -13,7 +13,7 @@ import (
 	"go/ast"
 	"io"
 	"io/ioutil"
-	"net/http/internal"
+	"storj.io/storj/fork/net/http/internal"
 	"net/url"
 	"reflect"
 	"regexp"

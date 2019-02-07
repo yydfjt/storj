@@ -9,7 +9,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"net/http"
+	"storj.io/storj/fork/net/http"
 	"testing"
 )
 

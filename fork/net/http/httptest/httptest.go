@@ -11,7 +11,7 @@ import (
 	"crypto/tls"
 	"io"
 	"io/ioutil"
-	"net/http"
+	"storj.io/storj/fork/net/http"
 	"strings"
 )
 

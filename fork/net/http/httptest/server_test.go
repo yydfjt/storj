@@ -8,7 +8,7 @@ import (
 	"bufio"
 	"io/ioutil"
 	"net"
-	"net/http"
+	"storj.io/storj/fork/net/http"
 	"testing"
 )
 

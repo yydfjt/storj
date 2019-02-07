@@ -9,8 +9,8 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net/http"
-	"net/http/httptest"
+	"storj.io/storj/fork/net/http"
+	"storj.io/storj/fork/net/http/httptest"
 )
 
 func ExampleResponseRecorder() {

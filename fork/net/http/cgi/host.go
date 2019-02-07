@@ -20,7 +20,7 @@ import (
 	"io"
 	"log"
 	"net"
-	"net/http"
+	"storj.io/storj/fork/net/http"
 	"os"
 	"os/exec"
 	"path/filepath"

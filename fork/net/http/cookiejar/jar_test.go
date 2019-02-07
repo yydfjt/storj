@@ -6,7 +6,7 @@ package cookiejar
 
 import (
 	"fmt"
-	"net/http"
+	"storj.io/storj/fork/net/http"
 	"net/url"
 	"sort"
 	"strings"

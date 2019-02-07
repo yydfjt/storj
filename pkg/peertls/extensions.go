@@ -15,6 +15,7 @@ import (
 
 	"github.com/zeebo/errs"
 
+	"github.com/spacemonkeygo/openssl"
 	"storj.io/storj/pkg/pkcrypto"
 )
 
@@ -212,21 +213,23 @@ func (e ExtensionHandlers) VerifyFunc() PeerCertVerificationFunc {
 	if len(e) == 0 {
 		return nil
 	}
-	return func(_ [][]byte, parsedChains [][]*x509.Certificate) error {
-		leafExts := make(map[string]pkix.Extension)
-		for _, ext := range parsedChains[0][LeafIndex].ExtraExtensions {
-			leafExts[ext.Id.String()] = ext
-		}
+	return func(_ bool, store *openssl.CertificateStoreCtx) bool {
+		// XXX
+		return true
+		//leafExts := make(map[string]pkix.Extension)
+		//for _, ext := range parsedChains[0][LeafIndex].ExtraExtensions {
+		//	leafExts[ext.Id.String()] = ext
+		//}
 
-		for _, handler := range e {
-			if ext, ok := leafExts[handler.ID.String()]; ok {
-				err := handler.Verify(ext, parsedChains)
-				if err != nil {
-					return ErrExtension.Wrap(err)
-				}
-			}
-		}
-		return nil
+		//for _, handler := range e {
+		//	if ext, ok := leafExts[handler.ID.String()]; ok {
+		//		err := handler.Verify(ext, parsedChains)
+		//		if err != nil {
+		//			return ErrExtension.Wrap(err)
+		//		}
+		//	}
+		//}
+		//return nil
 	}
 }
 

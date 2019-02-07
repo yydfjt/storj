@@ -140,7 +140,7 @@ func (t *Transport) RoundTrip(req *Request) (*Response, error) {
 	})
 	defer success.Release()
 	failure := js.NewCallback(func(args []js.Value) {
-		err := fmt.Errorf("net/http: fetch() failed: %s", args[0].String())
+		err := fmt.Errorf("storj.io/storj/fork/net/http: fetch() failed: %s", args[0].String())
 		select {
 		case errCh <- err:
 		case <-req.Context().Done():
@@ -162,7 +162,7 @@ func (t *Transport) RoundTrip(req *Request) (*Response, error) {
 	}
 }
 
-var errClosed = errors.New("net/http: reader is closed")
+var errClosed = errors.New("storj.io/storj/fork/net/http: reader is closed")
 
 // useFakeNetwork is used to determine whether the request is made
 // by a test and should be made to use the fake in-memory network.

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
+	"storj.io/storj/fork/net/http"
 	"os"
 	"runtime"
 	"sort"

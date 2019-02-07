@@ -6,7 +6,7 @@ package http
 
 import (
 	"io"
-	"net/http/httptrace"
+	"storj.io/storj/fork/net/http/httptrace"
 	"net/textproto"
 	"sort"
 	"strings"

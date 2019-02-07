@@ -7,10 +7,10 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/rand"
-	"crypto/tls"
 	"crypto/x509"
 	"io"
 
+	"github.com/spacemonkeygo/openssl"
 	"github.com/zeebo/errs"
 
 	"storj.io/storj/pkg/pkcrypto"
@@ -33,72 +33,84 @@ var (
 	ErrVerifyCAWhitelist = errs.Class("not signed by any CA in the whitelist")
 )
 
-// PeerCertVerificationFunc is the signature for a `*tls.Config{}`'s
-// `VerifyPeerCertificate` function.
-type PeerCertVerificationFunc func([][]byte, [][]*x509.Certificate) error
+// PeerCertVerificationFunc is the signature for an `openssl.Ctx`'s
+// `VerifyCallback` function.
+type PeerCertVerificationFunc = openssl.VerifyCallback
 
-// VerifyPeerFunc combines multiple `*tls.Config#VerifyPeerCertificate`
+// VerifyPeerFunc combines multiple `openssl.VerifyCallback`
 // functions and adds certificate parsing.
 func VerifyPeerFunc(next ...PeerCertVerificationFunc) PeerCertVerificationFunc {
-	return func(chain [][]byte, _ [][]*x509.Certificate) error {
-		c, err := pkcrypto.CertsFromDER(chain)
-		if err != nil {
-			return ErrVerifyPeerCert.Wrap(err)
-		}
-
+	return func(preverify_ok bool, store *openssl.CertificateStoreCtx) bool {
+		currentCert := store.GetCurrentCert()
 		for _, n := range next {
 			if n != nil {
-				if err := n(chain, [][]*x509.Certificate{c}); err != nil {
-					return ErrVerifyPeerCert.Wrap(err)
+				if ok := n(preverify_ok, store); !ok {
+					return false
 				}
 			}
 		}
-		return nil
+		return true
 	}
 }
 
-// VerifyPeerCertChains verifies that the first certificate chain contains certificates
+// VerifyPeerCertChains verifies that the certificate chain contains certificates
 // which are signed by their respective parents, ending with a self-signed root.
-func VerifyPeerCertChains(_ [][]byte, parsedChains [][]*x509.Certificate) error {
-	return verifyChainSignatures(parsedChains[0])
+func VerifyPeerCertChains(_ bool, store *openssl.CertificateStoreCtx) bool {
+	// XXX
+	return true
 }
 
 // VerifyCAWhitelist verifies that the peer identity's CA was signed by any one
 // of the (certificate authority) certificates in the provided whitelist.
-func VerifyCAWhitelist(cas []*x509.Certificate) PeerCertVerificationFunc {
+func VerifyCAWhitelist(cas []*openssl.Certificate) PeerCertVerificationFunc {
 	if cas == nil {
 		return nil
 	}
-	return func(_ [][]byte, parsedChains [][]*x509.Certificate) error {
-		for _, ca := range cas {
-			err := verifyCertSignature(ca, parsedChains[0][CAIndex])
-			if err == nil {
-				return nil
-			}
-		}
-		return ErrVerifyCAWhitelist.New("CA cert")
+	return func(_ bool, store *openssl.CertificateStoreCtx) bool {
+		// XXX
+		return true
+		//for _, ca := range cas {
+		//	err := verifyCertSignature(ca, parsedChains[0][CAIndex])
+		//	if err == nil {
+		//		return nil
+		//	}
+		//}
+		//return ErrVerifyCAWhitelist.New("CA cert")
 	}
 }
 
-// TLSCert creates a tls.Certificate from chains, key and leaf.
-func TLSCert(chain [][]byte, leaf *x509.Certificate, key crypto.PrivateKey) (*tls.Certificate, error) {
-	var err error
+// TLSContext creates an openssl.Ctx from chains, key and leaf.
+func TLSContext(chain [][]byte, leaf *openssl.Certificate, key crypto.PrivateKey) (*openssl.Ctx, error) {
+	ctx, err := openssl.NewCtx()
+	if err != nil {
+		return nil, errs.Wrap(err)
+	}
 	if leaf == nil {
 		leaf, err = pkcrypto.CertFromDER(chain[0])
 		if err != nil {
 			return nil, err
 		}
 	}
-
-	return &tls.Certificate{
-		Leaf:        leaf,
-		Certificate: chain,
-		PrivateKey:  key,
-	}, nil
+	if err := ctx.UseCertificate(leaf); err != nil {
+		return nil, errs.Wrap(err)
+	}
+	for i, certBytes := range chain {
+		cert, err := openssl.LoadCertificateFromPEM(certBytes)
+		if err != nil {
+			return nil, errs.Wrap(err)
+		}
+		if err := ctx.AddChainCertificate(cert); err != nil {
+			return nil, errs.Wrap(err)
+		}
+	}
+	if err := ctx.UsePrivateKey(key); err != nil {
+		return nil, errs.Wrap(err)
+	}
+	return ctx, nil
 }
 
 // WriteChain writes the certificate chain (leaf-first) to the writer, PEM-encoded.
-func WriteChain(w io.Writer, chain ...*x509.Certificate) error {
+func WriteChain(w io.Writer, chain ...*openssl.Certificate) error {
 	if len(chain) < 1 {
 		return errs.New("expected at least one certificate for writing")
 	}
@@ -119,7 +131,7 @@ func WriteChain(w io.Writer, chain ...*x509.Certificate) error {
 }
 
 // ChainBytes returns bytes of the certificate chain (leaf-first) to the writer, PEM-encoded.
-func ChainBytes(chain ...*x509.Certificate) ([]byte, error) {
+func ChainBytes(chain ...*openssl.Certificate) ([]byte, error) {
 	var data bytes.Buffer
 	err := WriteChain(&data, chain...)
 	return data.Bytes(), err
@@ -145,7 +157,8 @@ func CreateCertificate(signee crypto.PublicKey, signer crypto.PrivateKey, templa
 		// x509.CreateCertificate will panic in this case, so check here and make debugging easier
 		return nil, errs.New("can't sign certificate with signer key of type %T", signer)
 	}
-	cb, err := x509.CreateCertificate(
+
+	cb, err := openssl.CreateCertificate(
 		rand.Reader,
 		template,
 		issuer,

@@ -7,8 +7,8 @@ package pprof
 import (
 	"bytes"
 	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
+	"storj.io/storj/fork/net/http"
+	"storj.io/storj/fork/net/http/httptest"
 	"runtime/pprof"
 	"testing"
 )

@@ -4,7 +4,7 @@
 
 package cookiejar_test
 
-import "net/http/cookiejar"
+import "storj.io/storj/fork/net/http/cookiejar"
 
 type dummypsl struct {
 	List cookiejar.PublicSuffixList

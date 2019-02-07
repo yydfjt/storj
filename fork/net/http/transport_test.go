@@ -20,28 +20,30 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"internal/nettrace"
-	"internal/testenv"
 	"io"
 	"io/ioutil"
 	"log"
 	"net"
-	. "net/http"
-	"net/http/httptest"
-	"net/http/httptrace"
-	"net/http/httputil"
-	"net/http/internal"
 	"net/textproto"
 	"net/url"
 	"os"
 	"reflect"
 	"runtime"
+	. "storj.io/storj/fork/net/http"
+	"storj.io/storj/fork/net/http/httptest"
+	"storj.io/storj/fork/net/http/httptrace"
+	"storj.io/storj/fork/net/http/httputil"
+	"storj.io/storj/fork/net/http/internal"
+	"storj.io/storj/internal/fork/nettrace"
+	"storj.io/storj/internal/fork/testenv"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/spacemonkeygo/openssl"
 )
 
 // TODO: test 5 pipelined requests with responses: 1) OK, 2) OK, Connection: Close
@@ -3150,7 +3152,7 @@ func TestTransportDialTLS(t *testing.T) {
 		mu.Lock()
 		didDial = true
 		mu.Unlock()
-		c, err := tls.Dial(netw, addr, c.Transport.(*Transport).TLSClientConfig)
+		c, err := openssl.Dial(netw, addr, c.Transport.(*Transport).TLSClientConfig, 0)
 		if err != nil {
 			return nil, err
 		}

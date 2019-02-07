@@ -19,6 +19,8 @@ require (
 
 exclude gopkg.in/olivere/elastic.v5 v5.0.72 // buggy import, see https://github.com/olivere/elastic/pull/869
 
+replace github.com/spacemonkeygo/openssl => /Users/paul/packages/spacemonkeygo/openssl
+
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/Shopify/go-lua v0.0.0-20181106184032-48449c60c0a9
@@ -91,6 +93,7 @@ require (
 	github.com/shirou/gopsutil v2.17.12+incompatible
 	github.com/skyrings/skyring-common v0.0.0-20160929130248-d1c0bb1cbd5e
 	github.com/spacemonkeygo/errors v0.0.0-20171212215202-9064522e9fd1 // indirect
+	github.com/spacemonkeygo/openssl v0.0.0-20181017203307-c2dcc5cca94a
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3
 	github.com/spf13/viper v1.2.1

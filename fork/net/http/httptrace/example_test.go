@@ -7,8 +7,8 @@ package httptrace_test
 import (
 	"fmt"
 	"log"
-	"net/http"
-	"net/http/httptrace"
+	"storj.io/storj/fork/net/http"
+	"storj.io/storj/fork/net/http/httptrace"
 )
 
 func Example() {

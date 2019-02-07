@@ -7,9 +7,9 @@ package cookiejar_test
 import (
 	"fmt"
 	"log"
-	"net/http"
-	"net/http/cookiejar"
-	"net/http/httptest"
+	"storj.io/storj/fork/net/http"
+	"storj.io/storj/fork/net/http/cookiejar"
+	"storj.io/storj/fork/net/http/httptest"
 	"net/url"
 )
 

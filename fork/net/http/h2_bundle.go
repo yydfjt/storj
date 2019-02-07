@@ -32,7 +32,7 @@ import (
 	"math"
 	mathrand "math/rand"
 	"net"
-	"net/http/httptrace"
+	"storj.io/storj/fork/net/http/httptrace"
 	"net/textproto"
 	"net/url"
 	"os"
@@ -44,9 +44,9 @@ import (
 	"sync"
 	"time"
 
-	"golang_org/x/net/http/httpguts"
-	"golang_org/x/net/http2/hpack"
-	"golang_org/x/net/idna"
+	"golang.org/x/net/http/httpguts"
+	"golang.org/x/net/http2/hpack"
+	"golang.org/x/net/idna"
 )
 
 // A list of the possible cipher suite ids. Taken from
@@ -7477,7 +7477,7 @@ func (cc *http2ClientConn) putFrameScratchBuffer(buf []byte) {
 
 // errRequestCanceled is a copy of net/http's errRequestCanceled because it's not
 // exported. At least they'll be DeepEqual for h1-vs-h2 comparisons tests.
-var http2errRequestCanceled = errors.New("net/http: request canceled")
+var http2errRequestCanceled = errors.New("storj.io/storj/fork/net/http: request canceled")
 
 func http2commaSeparatedTrailers(req *Request) (string, error) {
 	keys := make([]string, 0, len(req.Trailer))
@@ -8538,7 +8538,7 @@ func (b http2transportResponseBody) Read(p []byte) (n int, err error) {
 		if int64(n) > cs.bytesRemain {
 			n = int(cs.bytesRemain)
 			if err == nil {
-				err = errors.New("net/http: server replied with more than declared Content-Length; truncated")
+				err = errors.New("storj.io/storj/fork/net/http: server replied with more than declared Content-Length; truncated")
 				cc.writeStreamReset(cs.ID, http2ErrCodeProtocol, err)
 			}
 			cs.readErr = err

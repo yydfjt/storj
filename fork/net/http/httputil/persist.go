@@ -9,7 +9,7 @@ import (
 	"errors"
 	"io"
 	"net"
-	"net/http"
+	"storj.io/storj/fork/net/http"
 	"net/textproto"
 	"sync"
 )

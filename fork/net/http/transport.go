@@ -20,7 +20,7 @@ import (
 	"io"
 	"log"
 	"net"
-	"net/http/httptrace"
+	"storj.io/storj/fork/net/http/httptrace"
 	"net/textproto"
 	"net/url"
 	"os"
@@ -30,8 +30,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"golang_org/x/net/http/httpguts"
-	"golang_org/x/net/http/httpproxy"
+	"golang.org/x/net/http/httpguts"
+	"golang.org/x/net/http/httpproxy"
 )
 
 // DefaultTransport is the default implementation of Transport and is
@@ -400,11 +400,11 @@ func (t *Transport) roundTrip(req *Request) (*Response, error) {
 	if isHTTP {
 		for k, vv := range req.Header {
 			if !httpguts.ValidHeaderFieldName(k) {
-				return nil, fmt.Errorf("net/http: invalid header field name %q", k)
+				return nil, fmt.Errorf("storj.io/storj/fork/net/http: invalid header field name %q", k)
 			}
 			for _, v := range vv {
 				if !httpguts.ValidHeaderFieldValue(v) {
-					return nil, fmt.Errorf("net/http: invalid header field value %q for key %v", v, k)
+					return nil, fmt.Errorf("storj.io/storj/fork/net/http: invalid header field value %q for key %v", v, k)
 				}
 			}
 		}
@@ -421,7 +421,7 @@ func (t *Transport) roundTrip(req *Request) (*Response, error) {
 		return nil, &badStringError{"unsupported protocol scheme", scheme}
 	}
 	if req.Method != "" && !validMethod(req.Method) {
-		return nil, fmt.Errorf("net/http: invalid method %q", req.Method)
+		return nil, fmt.Errorf("storj.io/storj/fork/net/http: invalid method %q", req.Method)
 	}
 	if req.URL.Host == "" {
 		req.closeBody()
@@ -542,7 +542,7 @@ func (pc *persistConn) shouldRetryRequest(req *Request, err error) bool {
 }
 
 // ErrSkipAltProtocol is a sentinel error value defined by Transport.RegisterProtocol.
-var ErrSkipAltProtocol = errors.New("net/http: skip alternate protocol")
+var ErrSkipAltProtocol = errors.New("storj.io/storj/fork/net/http: skip alternate protocol")
 
 // RegisterProtocol registers a new protocol with scheme.
 // The Transport will pass requests using the given scheme to rt.
@@ -702,7 +702,7 @@ type transportReadFromServerError struct {
 }
 
 func (e transportReadFromServerError) Error() string {
-	return fmt.Sprintf("net/http: Transport failed to read from server: %v", e.err)
+	return fmt.Sprintf("storj.io/storj/fork/net/http: Transport failed to read from server: %v", e.err)
 }
 
 func (t *Transport) putOrCloseIdleConn(pconn *persistConn) {
@@ -918,7 +918,7 @@ func (t *Transport) dial(ctx context.Context, network, addr string) (net.Conn, e
 	if t.Dial != nil {
 		c, err := t.Dial(network, addr)
 		if c == nil && err == nil {
-			err = errors.New("net/http: Transport.Dial hook returned (nil, nil)")
+			err = errors.New("storj.io/storj/fork/net/http: Transport.Dial hook returned (nil, nil)")
 		}
 		return c, err
 	}
@@ -1215,7 +1215,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (*persistCon
 			return nil, wrapErr(err)
 		}
 		if pconn.conn == nil {
-			return nil, wrapErr(errors.New("net/http: Transport.DialTLS returned (nil, nil)"))
+			return nil, wrapErr(errors.New("storj.io/storj/fork/net/http: Transport.DialTLS returned (nil, nil)"))
 		}
 		if tc, ok := pconn.conn.(*tls.Conn); ok {
 			// Handshake here, in case DialTLS didn't. TLSNextProto below
@@ -1602,7 +1602,7 @@ func (pc *persistConn) mapRoundTripError(req *transportRequest, startBytesWritte
 		if pc.nwrite == startBytesWritten {
 			return nothingWrittenError{err}
 		}
-		return fmt.Errorf("net/http: HTTP/1.x transport connection broken: %v", err)
+		return fmt.Errorf("storj.io/storj/fork/net/http: HTTP/1.x transport connection broken: %v", err)
 	}
 	return err
 }
@@ -1665,7 +1665,7 @@ func (pc *persistConn) readLoop() {
 
 		if err != nil {
 			if pc.readLimit <= 0 {
-				err = fmt.Errorf("net/http: server response headers exceeded %d bytes; aborted", pc.maxHeaderResponseSize())
+				err = fmt.Errorf("storj.io/storj/fork/net/http: server response headers exceeded %d bytes; aborted", pc.maxHeaderResponseSize())
 			}
 
 			select {
@@ -1836,7 +1836,7 @@ func (pc *persistConn) readResponse(rc requestAndChan, trace *httptrace.ClientTr
 		if is1xxNonTerminal {
 			num1xx++
 			if num1xx > max1xxResponses {
-				return nil, errors.New("net/http: too many 1xx informational responses")
+				return nil, errors.New("storj.io/storj/fork/net/http: too many 1xx informational responses")
 			}
 			pc.readLimit = pc.maxHeaderResponseSize() // reset the limit
 			if trace != nil && trace.Got1xxResponse != nil {
@@ -1999,9 +1999,9 @@ func (e *httpError) Error() string   { return e.err }
 func (e *httpError) Timeout() bool   { return e.timeout }
 func (e *httpError) Temporary() bool { return true }
 
-var errTimeout error = &httpError{err: "net/http: timeout awaiting response headers", timeout: true}
-var errRequestCanceled = errors.New("net/http: request canceled")
-var errRequestCanceledConn = errors.New("net/http: request canceled while waiting for connection") // TODO: unify?
+var errTimeout error = &httpError{err: "storj.io/storj/fork/net/http: timeout awaiting response headers", timeout: true}
+var errRequestCanceled = errors.New("storj.io/storj/fork/net/http: request canceled")
+var errRequestCanceledConn = errors.New("storj.io/storj/fork/net/http: request canceled while waiting for connection") // TODO: unify?
 
 func nop() {}
 
@@ -2331,7 +2331,7 @@ type tlsHandshakeTimeoutError struct{}
 
 func (tlsHandshakeTimeoutError) Timeout() bool   { return true }
 func (tlsHandshakeTimeoutError) Temporary() bool { return true }
-func (tlsHandshakeTimeoutError) Error() string   { return "net/http: TLS handshake timeout" }
+func (tlsHandshakeTimeoutError) Error() string   { return "storj.io/storj/fork/net/http: TLS handshake timeout" }
 
 // fakeLocker is a sync.Locker which does nothing. It's used to guard
 // test-only fields when not under test, to avoid runtime atomic

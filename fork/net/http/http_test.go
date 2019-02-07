@@ -8,7 +8,7 @@ package http
 
 import (
 	"bytes"
-	"internal/testenv"
+	"storj.io/storj/internal/fork/testenv"
 	"os/exec"
 	"reflect"
 	"testing"
@@ -90,14 +90,14 @@ func TestCmdGoNoHTTPServer(t *testing.T) {
 	}
 	wantSym := map[string]bool{
 		// Verify these exist: (sanity checking this test)
-		"net/http.(*Client).Get":          true,
-		"net/http.(*Transport).RoundTrip": true,
+		"storj.io/storj/fork/net/http.(*Client).Get":          true,
+		"storj.io/storj/fork/net/http.(*Transport).RoundTrip": true,
 
 		// Verify these don't exist:
-		"net/http.http2Server":           false,
-		"net/http.(*Server).Serve":       false,
-		"net/http.(*ServeMux).ServeHTTP": false,
-		"net/http.DefaultServeMux":       false,
+		"storj.io/storj/fork/net/http.http2Server":           false,
+		"storj.io/storj/fork/net/http.(*Server).Serve":       false,
+		"storj.io/storj/fork/net/http.(*ServeMux).ServeHTTP": false,
+		"storj.io/storj/fork/net/http.DefaultServeMux":       false,
 	}
 	for sym, want := range wantSym {
 		got := bytes.Contains(out, []byte(sym))

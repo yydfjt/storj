@@ -19,14 +19,14 @@ import (
 	"mime"
 	"mime/multipart"
 	"net"
-	"net/http/httptrace"
+	"storj.io/storj/fork/net/http/httptrace"
 	"net/textproto"
 	"net/url"
 	"strconv"
 	"strings"
 	"sync"
 
-	"golang_org/x/net/idna"
+	"golang.org/x/net/idna"
 )
 
 const (
@@ -797,7 +797,7 @@ func NewRequest(method, url string, body io.Reader) (*Request, error) {
 		method = "GET"
 	}
 	if !validMethod(method) {
-		return nil, fmt.Errorf("net/http: invalid method %q", method)
+		return nil, fmt.Errorf("storj.io/storj/fork/net/http: invalid method %q", method)
 	}
 	u, err := parseURL(url) // Just url.Parse (url is shadowed for godoc).
 	if err != nil {

@@ -9,7 +9,7 @@ package httptrace
 import (
 	"context"
 	"crypto/tls"
-	"internal/nettrace"
+	"storj.io/storj/internal/fork/nettrace"
 	"net"
 	"net/textproto"
 	"reflect"

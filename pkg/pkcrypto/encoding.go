@@ -4,7 +4,6 @@
 package pkcrypto
 
 import (
-	"crypto"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
@@ -12,6 +11,7 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/spacemonkeygo/openssl"
 	"github.com/zeebo/errs"
 
 	"storj.io/storj/pkg/utils"
@@ -19,37 +19,33 @@ import (
 
 // WritePublicKeyPEM writes the public key, in a PEM-enveloped
 // PKIX form.
-func WritePublicKeyPEM(w io.Writer, key crypto.PublicKey) error {
-	kb, err := PublicKeyToPKIX(key)
+func WritePublicKeyPEM(w io.Writer, key openssl.PublicKey) error {
+	keyBytes, err := PublicKeyToPEM(key)
 	if err != nil {
-		return err
+		return errs.Wrap(err)
 	}
-	err = pem.Encode(w, &pem.Block{Type: BlockLabelPublicKey, Bytes: kb})
-	return errs.Wrap(err)
+	_, err = w.Write(keyBytes)
+	return err
 }
 
 // PublicKeyToPEM encodes a public key to a PEM-enveloped PKIX form.
-func PublicKeyToPEM(key crypto.PublicKey) ([]byte, error) {
-	kb, err := PublicKeyToPKIX(key)
-	if err != nil {
-		return nil, err
-	}
-	return pem.EncodeToMemory(&pem.Block{Type: BlockLabelPublicKey, Bytes: kb}), nil
+func PublicKeyToPEM(key openssl.PublicKey) ([]byte, error) {
+	return key.MarshalPKIXPublicKeyPEM()
 }
 
 // PublicKeyToPKIX serializes a public key to a PKIX-encoded form.
-func PublicKeyToPKIX(key crypto.PublicKey) ([]byte, error) {
-	return x509.MarshalPKIXPublicKey(key)
+func PublicKeyToPKIX(key openssl.PublicKey) ([]byte, error) {
+	return key.MarshalPKIXPublicKeyDER()
 }
 
 // PublicKeyFromPKIX parses a public key from its PKIX encoding.
-func PublicKeyFromPKIX(pkixData []byte) (crypto.PublicKey, error) {
+func PublicKeyFromPKIX(pkixData []byte) (openssl.PublicKey, error) {
 	return x509.ParsePKIXPublicKey(pkixData)
 }
 
 // PublicKeyFromPEM parses a public key from its PEM-enveloped PKIX
 // encoding.
-func PublicKeyFromPEM(pemData []byte) (crypto.PublicKey, error) {
+func PublicKeyFromPEM(pemData []byte) (openssl.PublicKey, error) {
 	pb, _ := pem.Decode(pemData)
 	if pb == nil {
 		return nil, ErrParse.New("could not parse PEM encoding")
@@ -62,7 +58,7 @@ func PublicKeyFromPEM(pemData []byte) (crypto.PublicKey, error) {
 
 // WritePrivateKeyPEM writes the private key to the writer, in a PEM-enveloped
 // PKCS#8 form.
-func WritePrivateKeyPEM(w io.Writer, key crypto.PrivateKey) error {
+func WritePrivateKeyPEM(w io.Writer, key openssl.PrivateKey) error {
 	kb, err := PrivateKeyToPKCS8(key)
 	if err != nil {
 		return errs.Wrap(err)
@@ -72,7 +68,7 @@ func WritePrivateKeyPEM(w io.Writer, key crypto.PrivateKey) error {
 }
 
 // PrivateKeyToPEM serializes a private key to a PEM-enveloped PKCS#8 form.
-func PrivateKeyToPEM(key crypto.PrivateKey) ([]byte, error) {
+func PrivateKeyToPEM(key openssl.PrivateKey) ([]byte, error) {
 	kb, err := PrivateKeyToPKCS8(key)
 	if err != nil {
 		return nil, errs.Wrap(err)
@@ -81,22 +77,22 @@ func PrivateKeyToPEM(key crypto.PrivateKey) ([]byte, error) {
 }
 
 // PrivateKeyToPKCS8 serializes a private key to a PKCS#8-encoded form.
-func PrivateKeyToPKCS8(key crypto.PrivateKey) ([]byte, error) {
-	return x509.MarshalPKCS8PrivateKey(key)
+func PrivateKeyToPKCS8(key openssl.PrivateKey) ([]byte, error) {
+	return key.MarshalPKCS1PrivateKeyDER()
 }
 
 // PrivateKeyFromPKCS8 parses a private key from its PKCS#8 encoding.
-func PrivateKeyFromPKCS8(keyBytes []byte) (crypto.PrivateKey, error) {
+func PrivateKeyFromPKCS8(keyBytes []byte) (openssl.PrivateKey, error) {
 	key, err := x509.ParsePKCS8PrivateKey(keyBytes)
 	if err != nil {
 		return nil, err
 	}
-	return crypto.PrivateKey(key), nil
+	return openssl.PrivateKey(key), nil
 }
 
 // PrivateKeyFromPEM parses a private key from its PEM-enveloped PKCS#8
 // encoding.
-func PrivateKeyFromPEM(keyBytes []byte) (crypto.PrivateKey, error) {
+func PrivateKeyFromPEM(keyBytes []byte) (openssl.PrivateKey, error) {
 	pb, _ := pem.Decode(keyBytes)
 	if pb == nil {
 		return nil, ErrParse.New("could not parse PEM encoding")
@@ -133,26 +129,19 @@ func CertToDER(cert *x509.Certificate) ([]byte, error) {
 }
 
 // CertFromDER parses an X.509 certificate from its DER encoding.
-func CertFromDER(certDER []byte) (*x509.Certificate, error) {
-	return x509.ParseCertificate(certDER)
+func CertFromDER(certDER []byte) (*openssl.Certificate, error) {
+	return openssl.LoadCertificateFromDER(certDER)
 }
 
 // CertFromPEM parses an X.509 certificate from its PEM-enveloped DER encoding.
-func CertFromPEM(certPEM []byte) (*x509.Certificate, error) {
-	kb, _ := pem.Decode(certPEM)
-	if kb == nil {
-		return nil, ErrParse.New("could not decode certificate as PEM")
-	}
-	if kb.Type != BlockLabelCertificate {
-		return nil, ErrParse.New("can not parse certificate from PEM block labeled %q", kb.Type)
-	}
-	return CertFromDER(kb.Bytes)
+func CertFromPEM(certPEM []byte) (*openssl.Certificate, error) {
+	return openssl.LoadCertificateFromPEM(certPEM)
 }
 
 // CertsFromDER parses an x509 certificate from each of the given byte
 // slices, which should be encoded in DER.
-func CertsFromDER(rawCerts [][]byte) ([]*x509.Certificate, error) {
-	certs := make([]*x509.Certificate, len(rawCerts))
+func CertsFromDER(rawCerts [][]byte) ([]*openssl.Certificate, error) {
+	certs := make([]*openssl.Certificate, len(rawCerts))
 	for i, c := range rawCerts {
 		var err error
 		certs[i], err = CertFromDER(c)
@@ -307,7 +296,7 @@ func unmarshalECDSASignature(signatureBytes []byte) (r, s *big.Int, err error) {
 // ecPrivateKeyFromASN1 parses a private key from the special Elliptic Curve
 // Private Key ASN.1 structure. This is here only for backward compatibility.
 // Use PKCS#8 instead.
-func ecPrivateKeyFromASN1(privKeyData []byte) (crypto.PrivateKey, error) {
+func ecPrivateKeyFromASN1(privKeyData []byte) (openssl.PrivateKey, error) {
 	key, err := x509.ParseECPrivateKey(privKeyData)
 	if err != nil {
 		return nil, err

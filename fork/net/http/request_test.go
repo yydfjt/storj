@@ -13,7 +13,7 @@ import (
 	"io"
 	"io/ioutil"
 	"mime/multipart"
-	. "net/http"
+	. "storj.io/storj/fork/net/http"
 	"net/url"
 	"os"
 	"reflect"

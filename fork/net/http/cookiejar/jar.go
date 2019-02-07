@@ -9,7 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/http"
+	"storj.io/storj/fork/net/http"
 	"net/url"
 	"sort"
 	"strings"

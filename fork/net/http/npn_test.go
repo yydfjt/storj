@@ -12,8 +12,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	. "net/http"
-	"net/http/httptest"
+	. "storj.io/storj/fork/net/http"
+	"storj.io/storj/fork/net/http/httptest"
 	"strings"
 	"testing"
 )
