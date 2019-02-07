@@ -225,13 +225,14 @@ func revokeLeaf(keys []crypto.PrivateKey, chain []*x509.Certificate) ([]crypto.P
 	if err != nil {
 		return nil, nil, err
 	}
+	revokingPubKey := pkcrypto.PublicKeyFromPrivate(revokingKey)
 
 	revokingTemplate, err := peertls.LeafTemplate()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	revokingCert, err := peertls.NewCert(revokingKey, keys[0], revokingTemplate, chain[1])
+	revokingCert, err := peertls.CreateCertificate(revokingPubKey, keys[0], revokingTemplate, chain[1])
 	if err != nil {
 		return nil, nil, err
 	}

@@ -102,7 +102,7 @@ func TestPeerDiscovery(t *testing.T) {
 		Wallet: "OperatorWallet",
 	}
 	k, err := newKademlia(zaptest.NewLogger(t), pb.NodeType_STORAGE, bootstrapNodes, testAddress, metadata, testID, dir, defaultAlpha)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	rt := k.GetRoutingTable()
 	assert.Equal(t, rt.Local().Metadata.Email, "foo@bar.com")
 	assert.Equal(t, rt.Local().Metadata.Wallet, "OperatorWallet")
@@ -145,17 +145,17 @@ func TestBootstrap(t *testing.T) {
 	defer s1.Stop()
 
 	err := n1.Bootstrap(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	n2, s2, clean2 := testNode(t, []pb.Node{bn.routingTable.self})
 	defer clean2()
 	defer s2.Stop()
 
 	err = n2.Bootstrap(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	nodeIDs, err := n2.routingTable.nodeBucketDB.List(nil, 0)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, nodeIDs, 3)
 }
 
@@ -163,21 +163,21 @@ func testNode(t *testing.T, bn []pb.Node) (*Kademlia, *grpc.Server, func()) {
 	ctx := testcontext.New(t)
 	// new address
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// new config
 	// new identity
 	fid, err := testidentity.NewTestIdentity(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// new kademlia
 	dir, cleanup := mktempdir(t, "kademlia")
 
 	logger := zaptest.NewLogger(t)
 	k, err := newKademlia(logger, pb.NodeType_STORAGE, bn, lis.Addr().String(), nil, fid, dir, defaultAlpha)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	s := NewEndpoint(logger, k, k.GetRoutingTable().(*RoutingTable))
 	// new ident opts
 	identOpt, err := fid.ServerOption()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	grpcServer := grpc.NewServer(identOpt)
 
@@ -229,7 +229,7 @@ func TestFindNear(t *testing.T) {
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	srv, _ := newTestServer(ctx, []*pb.Node{{Id: teststorj.NodeIDFromString("foo")}})
 	go func() { assert.NoError(t, srv.Serve(lis)) }()
@@ -237,9 +237,9 @@ func TestFindNear(t *testing.T) {
 
 	// make new identity
 	fid, err := testidentity.NewTestIdentity(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	fid2, err := testidentity.NewTestIdentity(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	fid.ID = nodeIDA
 	fid2.ID = nodeIDB
 	// create two new unique identities
@@ -247,7 +247,7 @@ func TestFindNear(t *testing.T) {
 	dir, cleanup := mktempdir(t, "kademlia")
 	defer cleanup()
 	k, err := newKademlia(zaptest.NewLogger(t), pb.NodeType_STORAGE, []pb.Node{{Id: fid2.ID, Address: &pb.NodeAddress{Address: lis.Addr().String()}}}, lis.Addr().String(), nil, fid, dir, defaultAlpha)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer ctx.Check(k.Close)
 
 	// add nodes
@@ -420,7 +420,7 @@ func TestMeetsRestrictions(t *testing.T) {
 
 func mktempdir(t *testing.T, dir string) (string, func()) {
 	rootdir, err := ioutil.TempDir("", dir)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	cleanup := func() {
 		assert.NoError(t, os.RemoveAll(rootdir))
 	}
