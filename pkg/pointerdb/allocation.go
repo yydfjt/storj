@@ -41,6 +41,7 @@ func (allocation *AllocationSigner) PayerBandwidthAllocation(ctx context.Context
 	// convert ttl from days to seconds
 	ttl := allocation.bwExpiration
 	ttl *= 86400
+
 	pba = &pb.PayerBandwidthAllocation{
 		SatelliteId:       allocation.satelliteIdentity.ID,
 		UplinkId:          peerIdentity.ID,
