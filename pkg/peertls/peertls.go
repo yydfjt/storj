@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/rand"
-	"crypto/x509"
 	"io"
 
 	"github.com/spacemonkeygo/openssl"
@@ -80,7 +79,7 @@ func VerifyCAWhitelist(cas []*openssl.Certificate) PeerCertVerificationFunc {
 }
 
 // TLSContext creates an openssl.Ctx from chains, key and leaf.
-func TLSContext(chain [][]byte, leaf *openssl.Certificate, key crypto.PrivateKey) (*openssl.Ctx, error) {
+func TLSContext(chain [][]byte, leaf *openssl.Certificate, key openssl.PrivateKey) (*openssl.Ctx, error) {
 	ctx, err := openssl.NewCtx()
 	if err != nil {
 		return nil, errs.Wrap(err)
@@ -110,14 +109,14 @@ func TLSContext(chain [][]byte, leaf *openssl.Certificate, key crypto.PrivateKey
 }
 
 // WriteChain writes the certificate chain (leaf-first) to the writer, PEM-encoded.
-func WriteChain(w io.Writer, chain ...*openssl.Certificate) error {
+func WriteChain(w io.Writer, chain ...*pkcrypto.CertWithExtensions) error {
 	if len(chain) < 1 {
 		return errs.New("expected at least one certificate for writing")
 	}
 
 	var extErrs utils.ErrorGroup
 	for _, c := range chain {
-		if err := pkcrypto.WriteCertPEM(w, c); err != nil {
+		if err := pkcrypto.WriteCertPEM(w, c.C); err != nil {
 			return errs.Wrap(err)
 		}
 
@@ -131,7 +130,7 @@ func WriteChain(w io.Writer, chain ...*openssl.Certificate) error {
 }
 
 // ChainBytes returns bytes of the certificate chain (leaf-first) to the writer, PEM-encoded.
-func ChainBytes(chain ...*openssl.Certificate) ([]byte, error) {
+func ChainBytes(chain ...*pkcrypto.CertWithExtensions) ([]byte, error) {
 	var data bytes.Buffer
 	err := WriteChain(&data, chain...)
 	return data.Bytes(), err
@@ -139,7 +138,7 @@ func ChainBytes(chain ...*openssl.Certificate) ([]byte, error) {
 
 // CreateSelfSignedCertificate creates a new self-signed X.509v3 certificate
 // using fields from the given template.
-func CreateSelfSignedCertificate(key crypto.PrivateKey, template *x509.Certificate) (*x509.Certificate, error) {
+func CreateSelfSignedCertificate(key openssl.PrivateKey, template *openssl.Certificate) (*openssl.Certificate, error) {
 	return CreateCertificate(pkcrypto.PublicKeyFromPrivate(key), key, template, template)
 }
 
@@ -152,12 +151,7 @@ func CreateSelfSignedCertificate(key crypto.PrivateKey, template *x509.Certifica
 //  * will have metadata fields copied from 'template'
 //
 // Returns the new Certificate object.
-func CreateCertificate(signee crypto.PublicKey, signer crypto.PrivateKey, template, issuer *x509.Certificate) (*x509.Certificate, error) {
-	if _, ok := signer.(crypto.Signer); !ok {
-		// x509.CreateCertificate will panic in this case, so check here and make debugging easier
-		return nil, errs.New("can't sign certificate with signer key of type %T", signer)
-	}
-
+func CreateCertificate(signee openssl.PublicKey, signer crypto.PrivateKey, template, issuer *openssl.Certificate) (*openssl.Certificate, error) {
 	cb, err := openssl.CreateCertificate(
 		rand.Reader,
 		template,
