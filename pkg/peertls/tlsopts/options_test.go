@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"testing"
 
+	"storj.io/storj/pkg/peertls/extensions"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
