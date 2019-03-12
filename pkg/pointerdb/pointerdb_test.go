@@ -44,7 +44,7 @@ type mockAPIKeys struct {
 }
 
 var (
-	identities = testplanet.NewPregeneratedIdentities()
+	identities = testplanet.NewPregeneratedIdentities(storj.LatestIDVersion())
 )
 
 // GetByKey return api key info for given key

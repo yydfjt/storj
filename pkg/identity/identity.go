@@ -240,7 +240,10 @@ func NodeIDFromPEM(pemBytes []byte) (storj.NodeID, error) {
 	if len(chain) < peertls.CAIndex+1 {
 		return storj.NodeID{}, Error.New("no CA in identity certificate")
 	}
-	return NodeIDFromKey(chain[peertls.CAIndex].PublicKey)
+	caCert := chain[peertls.CAIndex]
+	//version, err := storj.IDVersionFromCert(caCert)
+	//return VersionedNodeIDFromKey(caCert.PublicKey, version)
+	return NodeIDFromKey(caCert.PublicKey)
 }
 
 // NodeIDFromKey hashes a public key and creates a node ID from it
@@ -253,6 +256,15 @@ func NodeIDFromKey(k crypto.PublicKey) (storj.NodeID, error) {
 	mid := sha256.Sum256(kb)
 	end := sha256.Sum256(mid[:])
 	return storj.NodeID(end), nil
+}
+
+func VersionedNodeIDFromKey(k crypto.PublicKey, version storj.IDVersion) (storj.NodeID, error) {
+	id, err := NodeIDFromKey(k)
+	if err != nil {
+		return storj.NodeID{}, err
+	}
+	
+	return storj.NewVersionedID(id, version), nil
 }
 
 // NewFullIdentity creates a new ID for nodes with difficulty and concurrency params

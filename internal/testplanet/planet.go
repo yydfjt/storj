@@ -69,8 +69,9 @@ type Config struct {
 	StorageNodeCount int
 	UplinkCount      int
 
-	Identities  *Identities
-	Reconfigure Reconfigure
+	Identities      *Identities
+	IdentityVersion *storj.IDVersion
+	Reconfigure     Reconfigure
 }
 
 // Planet is a full storj system setup.
@@ -129,6 +130,22 @@ func New(t zaptest.TestingT, satelliteCount, storageNodeCount, uplinkCount int) 
 	return NewWithLogger(log, satelliteCount, storageNodeCount, uplinkCount)
 }
 
+func NewWithIdentityVersion(t zaptest.TestingT, identityVersion *storj.IDVersion, satelliteCount, storageNodeCount, uplinkCount int) (*Planet, error) {
+	var log *zap.Logger
+	if t == nil {
+		log = zap.NewNop()
+	} else {
+		log = zaptest.NewLogger(t)
+	}
+
+	return NewCustom(log, Config{
+		SatelliteCount:   satelliteCount,
+		StorageNodeCount: storageNodeCount,
+		UplinkCount:      uplinkCount,
+		IdentityVersion:  identityVersion,
+	})
+}
+
 // NewWithLogger creates a new full system with the given number of nodes.
 func NewWithLogger(log *zap.Logger, satelliteCount, storageNodeCount, uplinkCount int) (*Planet, error) {
 	return NewCustom(log, Config{
@@ -140,8 +157,12 @@ func NewWithLogger(log *zap.Logger, satelliteCount, storageNodeCount, uplinkCoun
 
 // NewCustom creates a new full system with the specified configuration.
 func NewCustom(log *zap.Logger, config Config) (*Planet, error) {
+	if config.IdentityVersion == nil {
+		version := storj.LatestIDVersion()
+		config.IdentityVersion = &version
+	}
 	if config.Identities == nil {
-		config.Identities = pregeneratedSignedIdentities.Clone()
+		config.Identities = NewPregeneratedSignedIdentities(*config.IdentityVersion)
 	}
 
 	planet := &Planet{
@@ -156,7 +177,7 @@ func NewCustom(log *zap.Logger, config Config) (*Planet, error) {
 		return nil, err
 	}
 
-	whitelistPath, err := planet.WriteWhitelist()
+	whitelistPath, err := planet.WriteWhitelist(*config.IdentityVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -667,9 +688,9 @@ func (planet *Planet) NewListener() (net.Listener, error) {
 }
 
 // WriteWhitelist writes the pregenerated signer's CA cert to a "CA whitelist", PEM-encoded.
-func (planet *Planet) WriteWhitelist() (string, error) {
+func (planet *Planet) WriteWhitelist(version storj.IDVersion) (string, error) {
 	whitelistPath := filepath.Join(planet.directory, "whitelist.pem")
-	signer := NewPregeneratedSigner()
+	signer := NewPregeneratedSigner(version)
 	err := identity.PeerCAConfig{
 		CertPath: whitelistPath,
 	}.Save(signer.PeerCA())
