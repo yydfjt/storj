@@ -27,6 +27,7 @@ import (
 	"storj.io/storj/bootstrap/bootstrapdb"
 	"storj.io/storj/bootstrap/bootstrapweb/bootstrapserver"
 	"storj.io/storj/internal/memory"
+	"storj.io/storj/internal/testidentity"
 	"storj.io/storj/pkg/accounting/rollup"
 	"storj.io/storj/pkg/accounting/tally"
 	"storj.io/storj/pkg/audit"
@@ -69,7 +70,7 @@ type Config struct {
 	StorageNodeCount int
 	UplinkCount      int
 
-	Identities      *Identities
+	Identities      *testidentity.Identities
 	IdentityVersion *storj.IDVersion
 	Reconfigure     Reconfigure
 }
@@ -92,7 +93,7 @@ type Planet struct {
 	StorageNodes []*storagenode.Peer
 	Uplinks      []*Uplink
 
-	identities    *Identities
+	identities    *testidentity.Identities
 	whitelistPath string // TODO: in-memory
 
 	run    errgroup.Group
@@ -162,7 +163,7 @@ func NewCustom(log *zap.Logger, config Config) (*Planet, error) {
 		config.IdentityVersion = &version
 	}
 	if config.Identities == nil {
-		config.Identities = NewPregeneratedSignedIdentities(*config.IdentityVersion)
+		config.Identities = testidentity.NewPregeneratedSignedIdentities(*config.IdentityVersion)
 	}
 
 	planet := &Planet{
@@ -673,7 +674,7 @@ func (planet *Planet) newBootstrap() (peer *bootstrap.Peer, err error) {
 }
 
 // Identities returns the identity provider for this planet.
-func (planet *Planet) Identities() *Identities {
+func (planet *Planet) Identities() *testidentity.Identities {
 	return planet.identities
 }
 
@@ -690,7 +691,7 @@ func (planet *Planet) NewListener() (net.Listener, error) {
 // WriteWhitelist writes the pregenerated signer's CA cert to a "CA whitelist", PEM-encoded.
 func (planet *Planet) WriteWhitelist(version storj.IDVersion) (string, error) {
 	whitelistPath := filepath.Join(planet.directory, "whitelist.pem")
-	signer := NewPregeneratedSigner(version)
+	signer := testidentity.NewPregeneratedSigner(version)
 	err := identity.PeerCAConfig{
 		CertPath: whitelistPath,
 	}.Save(signer.PeerCA())

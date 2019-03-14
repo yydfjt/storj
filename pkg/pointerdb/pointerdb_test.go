@@ -24,7 +24,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"storj.io/storj/internal/testidentity"
-	"storj.io/storj/internal/testplanet"
 	"storj.io/storj/pkg/auth"
 	"storj.io/storj/pkg/auth/signing"
 	"storj.io/storj/pkg/pb"
@@ -44,7 +43,7 @@ type mockAPIKeys struct {
 }
 
 var (
-	identities = testplanet.NewPregeneratedIdentities(storj.LatestIDVersion())
+	identities = testidentity.NewPregeneratedIdentities(storj.LatestIDVersion())
 )
 
 // GetByKey return api key info for given key

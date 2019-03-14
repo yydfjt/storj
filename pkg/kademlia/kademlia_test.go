@@ -156,6 +156,7 @@ func testNode(ctx *testcontext.Context, name string, t *testing.T, bn []pb.Node)
 	// new config
 	// new identity
 	fid, err := testidentity.NewTestIdentity(ctx)
+	//fid, err := testidentity.PregeneratedIdentities.NewIdentity()
 	assert.NoError(t, err)
 	// new kademlia
 
