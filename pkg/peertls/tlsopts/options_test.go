@@ -115,7 +115,7 @@ func TestNewOptions(t *testing.T) {
 	}
 }
 
-type identFunc func(int) (*identity.FullIdentity, error)
+type identFunc func(int, storj.IDVersion) (*identity.FullIdentity, error)
 
 func TestOptions_ServerOption_Peer_CA_Whitelist(t *testing.T) {
 	ctx := testcontext.New(t)
@@ -137,7 +137,7 @@ func TestOptions_ServerOption_Peer_CA_Whitelist(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ident, err := testCase.identF(0)
+			ident, err := testCase.identF(0, storj.LatestIDVersion())
 			require.NoError(t, err)
 
 			opts, err := tlsopts.NewOptions(ident, tlsopts.Config{})
