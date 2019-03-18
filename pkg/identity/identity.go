@@ -31,12 +31,12 @@ import (
 // PeerIdentity represents another peer on the network.
 type PeerIdentity struct {
 	RestChain []*x509.Certificate
-	// CA represents the peer's self-signed CA
+	// CA represents the peer's self-signed CA.
 	CA *x509.Certificate
 	// Leaf represents the leaf they're currently using. The leaf should be
 	// signed by the CA. The leaf is what is used for communication.
 	Leaf *x509.Certificate
-	// The ID taken from the CA public key
+	// The ID taken from the CA public key.
 	ID storj.NodeID
 }
 
@@ -49,7 +49,7 @@ type FullIdentity struct {
 	// Leaf represents the leaf they're currently using. The leaf should be
 	// signed by the CA. The leaf is what is used for communication.
 	Leaf *x509.Certificate
-	// The ID taken from the CA public key
+	// The ID taken from the CA public key.
 	ID storj.NodeID
 	// Key is the key this identity uses with the leaf for communication.
 	Key crypto.PrivateKey
@@ -85,7 +85,7 @@ type PeerConfig struct {
 }
 
 // FullCertificateAuthorityFromPEM loads a FullIdentity from a certificate chain and
-// private key PEM-encoded bytes
+// private key PEM-encoded bytes.
 func FullCertificateAuthorityFromPEM(chainPEM, keyPEM []byte) (*FullCertificateAuthority, error) {
 	peerCA, err := PeerCertificateAuthorityFromPEM(chainPEM)
 	if err != nil {
@@ -108,7 +108,7 @@ func FullCertificateAuthorityFromPEM(chainPEM, keyPEM []byte) (*FullCertificateA
 }
 
 // PeerCertificateAuthorityFromPEM loads a FullIdentity from a certificate chain and
-// private key PEM-encoded bytes
+// private key PEM-encoded bytes.
 func PeerCertificateAuthorityFromPEM(chainPEM []byte) (*PeerCertificateAuthority, error) {
 	chain, err := pkcrypto.CertsFromPEM(chainPEM)
 	if err != nil {
@@ -128,7 +128,7 @@ func PeerCertificateAuthorityFromPEM(chainPEM []byte) (*PeerCertificateAuthority
 }
 
 // FullIdentityFromPEM loads a FullIdentity from a certificate chain and
-// private key PEM-encoded bytes
+// private key PEM-encoded bytes.
 func FullIdentityFromPEM(chainPEM, keyPEM []byte) (*FullIdentity, error) {
 	peerIdent, err := PeerIdentityFromPEM(chainPEM)
 	if err != nil {
@@ -152,7 +152,7 @@ func FullIdentityFromPEM(chainPEM, keyPEM []byte) (*FullIdentity, error) {
 }
 
 // PeerIdentityFromPEM loads a PeerIdentity from a certificate chain and
-// private key PEM-encoded bytes
+// private key PEM-encoded bytes.
 func PeerIdentityFromPEM(chainPEM []byte) (*PeerIdentity, error) {
 	chain, err := pkcrypto.CertsFromPEM(chainPEM)
 	if err != nil {
@@ -189,7 +189,7 @@ func PeerIdentityFromCerts(leaf, ca *x509.Certificate, rest []*x509.Certificate)
 	}, nil
 }
 
-// PeerIdentityFromPeer loads a PeerIdentity from a peer connection
+// PeerIdentityFromPeer loads a PeerIdentity from a peer connection.
 func PeerIdentityFromPeer(peer *peer.Peer) (*PeerIdentity, error) {
 	if peer.AuthInfo == nil {
 		return nil, Error.New("peer AuthInfo is nil")
@@ -212,7 +212,7 @@ func PeerIdentityFromPeer(peer *peer.Peer) (*PeerIdentity, error) {
 	return pi, nil
 }
 
-// PeerIdentityFromContext loads a PeerIdentity from a ctx TLS credentials
+// PeerIdentityFromContext loads a PeerIdentity from a ctx TLS credentials.
 func PeerIdentityFromContext(ctx context.Context) (*PeerIdentity, error) {
 	p, ok := peer.FromContext(ctx)
 	if !ok {
@@ -222,7 +222,7 @@ func PeerIdentityFromContext(ctx context.Context) (*PeerIdentity, error) {
 	return PeerIdentityFromPeer(p)
 }
 
-// NodeIDFromCertPath loads a node ID from a certificate file path
+// NodeIDFromCertPath loads a node ID from a certificate file path.
 func NodeIDFromCertPath(certPath string) (storj.NodeID, error) {
 	certBytes, err := ioutil.ReadFile(certPath)
 	if err != nil {
@@ -231,7 +231,7 @@ func NodeIDFromCertPath(certPath string) (storj.NodeID, error) {
 	return NodeIDFromPEM(certBytes)
 }
 
-// NodeIDFromPEM loads a node ID from certificate bytes
+// NodeIDFromPEM loads a node ID from certificate bytes.
 func NodeIDFromPEM(pemBytes []byte) (storj.NodeID, error) {
 	chain, err := pkcrypto.CertsFromPEM(pemBytes)
 	if err != nil {
@@ -267,7 +267,7 @@ func VersionedNodeIDFromKey(k crypto.PublicKey, version storj.IDVersion) (storj.
 	return storj.NewVersionedID(id, version), nil
 }
 
-// NewFullIdentity creates a new ID for nodes with difficulty and concurrency params
+// NewFullIdentity creates a new ID for nodes with difficulty and concurrency params.
 func NewFullIdentity(ctx context.Context, difficulty uint16, concurrency uint) (*FullIdentity, error) {
 	ca, err := NewCA(ctx, NewCAOptions{
 		Difficulty:  difficulty,
