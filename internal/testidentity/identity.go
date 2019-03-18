@@ -14,6 +14,7 @@ import (
 )
 
 type IdentityTest func(*testing.T, *identity.FullIdentity)
+type SignerTest func(*testing.T, *identity.FullCertificateAuthority)
 
 // NewTestIdentity is a helper function to generate new node identities with
 // correct difficulty and concurrency
@@ -87,4 +88,16 @@ func NewTestManageablePeerIdentity(ctx context.Context) (*identity.ManageablePee
 		return nil, err
 	}
 	return identity.NewManageablePeerIdentity(ident.PeerIdentity(), ca), nil
+}
+
+func SignerVersionsTest(t *testing.T, test SignerTest) {
+	for versionNumber := range storj.IDVersions {
+		t.Run(fmt.Sprintf("identity version %d", versionNumber), func(t *testing.T) {
+			fmt.Printf("t.Run version %d\n", versionNumber)
+			ca := SignerVersions[versionNumber]
+
+			fmt.Printf("actual version %d\n", ca.ID.Version().Number)
+			test(t, ca)
+		})
+	}
 }
