@@ -115,7 +115,7 @@ func PeerCertificateAuthorityFromPEM(chainPEM []byte) (*PeerCertificateAuthority
 		return nil, errs.Wrap(err)
 	}
 	// NB: the "leaf" cert in a CA chain is the "CA" cert in an identity chain
-	nodeID, err := NodeIDFromKey(chain[peertls.LeafIndex].PublicKey)
+	nodeID, err := NodeIDFromCert(chain[peertls.LeafIndex])
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +161,7 @@ func PeerIdentityFromPEM(chainPEM []byte) (*PeerIdentity, error) {
 	if len(chain) < peertls.CAIndex+1 {
 		return nil, pkcrypto.ErrChainLength.New("identity chain does not contain a CA certificate")
 	}
-	nodeID, err := NodeIDFromKey(chain[peertls.CAIndex].PublicKey)
+	nodeID, err := NodeIDFromCert(chain[peertls.CAIndex])
 	if err != nil {
 		return nil, err
 	}
@@ -174,18 +174,18 @@ func PeerIdentityFromPEM(chainPEM []byte) (*PeerIdentity, error) {
 	}, nil
 }
 
-// PeerIdentityFromCerts loads a PeerIdentity from a pair of leaf and ca x509 certificates
-func PeerIdentityFromCerts(leaf, ca *x509.Certificate, rest []*x509.Certificate) (*PeerIdentity, error) {
-	i, err := NodeIDFromKey(ca.PublicKey)
+// PeerIdentityFromChain loads a PeerIdentity from an identity certificate chain.
+func PeerIdentityFromChain(chain []*x509.Certificate) (*PeerIdentity, error) {
+	nodeID, err := NodeIDFromCert(chain[peertls.CAIndex])
 	if err != nil {
 		return nil, err
 	}
 
 	return &PeerIdentity{
-		RestChain: rest,
-		CA:        ca,
-		ID:        i,
-		Leaf:      leaf,
+		RestChain: chain[peertls.CAIndex+1:],
+		CA:        chain[peertls.CAIndex],
+		ID:        nodeID,
+		Leaf:      chain[peertls.LeafIndex],
 	}, nil
 }
 
@@ -200,11 +200,11 @@ func PeerIdentityFromPeer(peer *peer.Peer) (*PeerIdentity, error) {
 		return nil, Error.New("peer AuthInfo is not credentials.TLSInfo")
 	}
 
-	c := tlsInfo.State.PeerCertificates
-	if len(c) < 2 {
+	chain := tlsInfo.State.PeerCertificates
+	if len(chain)-1 < peertls.CAIndex {
 		return nil, Error.New("invalid certificate chain")
 	}
-	pi, err := PeerIdentityFromCerts(c[peertls.LeafIndex], c[peertls.CAIndex], c[2:])
+	pi, err := PeerIdentityFromChain(chain)
 	if err != nil {
 		return nil, err
 	}
@@ -237,33 +237,30 @@ func NodeIDFromPEM(pemBytes []byte) (storj.NodeID, error) {
 	if err != nil {
 		return storj.NodeID{}, Error.New("invalid identity certificate")
 	}
-	if len(chain) < peertls.CAIndex+1 {
+	if len(chain)-1 < peertls.CAIndex {
 		return storj.NodeID{}, Error.New("no CA in identity certificate")
 	}
-	caCert := chain[peertls.CAIndex]
-	//version, err := storj.IDVersionFromCert(caCert)
-	//return VersionedNodeIDFromKey(caCert.PublicKey, version)
-	return NodeIDFromKey(caCert.PublicKey)
+	return NodeIDFromCert(chain[peertls.CAIndex])
 }
 
-// NodeIDFromKey hashes a public key and creates a node ID from it
-func NodeIDFromKey(k crypto.PublicKey) (storj.NodeID, error) {
-	// id = sha256(sha256(pkix(k)))
-	kb, err := x509.MarshalPKIXPublicKey(k)
+// NodeIDFromCert looks for a version in an ID version extension in the passed
+// cert and then calculates a versioned node ID using the certificate public key.
+// NB: `cert` would typically be an identity's certificate authority certificate.
+func NodeIDFromCert(cert *x509.Certificate) (id storj.NodeID, err error) {
+	version, err := storj.IDVersionFromCert(cert)
 	if err != nil {
-		return storj.NodeID{}, storj.ErrNodeID.Wrap(err)
+		return id, err
 	}
-	mid := sha256.Sum256(kb)
-	end := sha256.Sum256(mid[:])
-	return storj.NodeID(end), nil
+	return NodeIDFromKey(cert.PublicKey, version)
 }
 
-func VersionedNodeIDFromKey(k crypto.PublicKey, version storj.IDVersion) (storj.NodeID, error) {
-	id, err := NodeIDFromKey(k)
+// NodeIDFromKey calculates the node ID for a given public key with the passed version.
+func NodeIDFromKey(k crypto.PublicKey, version storj.IDVersion) (storj.NodeID, error) {
+	id, err := nodeIDFromKey(k)
 	if err != nil {
 		return storj.NodeID{}, err
 	}
-	
+
 	return storj.NewVersionedID(id, version), nil
 }
 
@@ -503,6 +500,18 @@ func (manageableIdent *ManageablePeerIdentity) Revoke() error {
 	manageableIdent.Leaf = revokingIdent.Leaf
 
 	return nil
+}
+
+// nodeIDFromKey hashes a public key and creates a node ID from it.
+func nodeIDFromKey(k crypto.PublicKey) (storj.NodeID, error) {
+	// id = sha256(sha256(pkix(k)))
+	kb, err := x509.MarshalPKIXPublicKey(k)
+	if err != nil {
+		return storj.NodeID{}, storj.ErrNodeID.Wrap(err)
+	}
+	mid := sha256.Sum256(kb)
+	end := sha256.Sum256(mid[:])
+	return storj.NodeID(end), nil
 }
 
 func backupPath(path string) string {
