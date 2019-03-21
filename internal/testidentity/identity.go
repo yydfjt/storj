@@ -56,7 +56,6 @@ func IdentityVersionsTest(t *testing.T, test IdentityTest) {
 func SignedIdentityVersionsTest(t *testing.T, test IdentityTest) {
 	for versionNumber, version := range storj.IDVersions {
 		t.Run(fmt.Sprintf("identity version %d", versionNumber), func(t *testing.T) {
-			fmt.Printf("t.Run version %d\n", versionNumber)
 			ident, err := SignedIdentityVersions[versionNumber].NewIdentity()
 			require.NoError(t, err)
 
@@ -92,7 +91,6 @@ func NewTestManageablePeerIdentity(ctx context.Context) (*identity.ManageablePee
 func SignerVersionsTest(t *testing.T, test SignerTest) {
 	for versionNumber, version := range storj.IDVersions {
 		t.Run(fmt.Sprintf("identity version %d", versionNumber), func(t *testing.T) {
-			fmt.Printf("t.Run version %d\n", versionNumber)
 			ca := SignerVersions[versionNumber]
 
 			test(t, version, ca)
