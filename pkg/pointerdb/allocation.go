@@ -103,7 +103,7 @@ func (allocation *AllocationSigner) OrderLimit(ctx context.Context, parameters O
 	}
 
 	// convert bwExpiration from days to seconds
-	orderExpiration, err := ptypes.TimestampProto(time.Now().Add(time.Duration(allocation.bwExpiration*24) * time.Hour))
+	orderExpiration, err := ptypes.TimestampProto(time.Unix(int64(allocation.bwExpiration*86400), 0))
 	if err != nil {
 		return nil, err
 	}
