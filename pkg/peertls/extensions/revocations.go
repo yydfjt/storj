@@ -95,6 +95,7 @@ func NewRevocationExt(key crypto.PrivateKey, revokedCert *x509.Certificate, fina
 func revocationChecker(opts *Options) HandlerFunc {
 	return func(_ pkix.Extension, chains [][]*x509.Certificate) error {
 		leaf := chains[0][peertls.LeafIndex]
+		//nodeID
 		lastRev, lastRevErr := opts.RevDB.Get(chains[0])
 		if lastRevErr != nil {
 			return Error.Wrap(lastRevErr)

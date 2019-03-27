@@ -10,9 +10,8 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
-	"io"
-
 	"github.com/zeebo/errs"
+	"io"
 
 	"storj.io/storj/pkg/pkcrypto"
 	"storj.io/storj/pkg/utils"
@@ -145,6 +144,8 @@ func NewCert(publicKey crypto.PublicKey, parentKey crypto.PrivateKey, template, 
 		return nil, errs.New("unsupported public key type %T", publicKey)
 	}
 
+	// TODO: should we check for uniqueness?
+	template.ExtraExtensions = append(template.ExtraExtensions, template.Extensions...)
 	cb, err := x509.CreateCertificate(
 		rand.Reader,
 		template,
