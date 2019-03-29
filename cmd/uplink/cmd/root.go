@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"storj.io/storj/internal/fpath"
+	libuplink "storj.io/storj/lib/uplink"
 	"storj.io/storj/pkg/cfgstruct"
 	"storj.io/storj/pkg/identity"
 	"storj.io/storj/pkg/storage/streams"
@@ -21,6 +22,8 @@ import (
 type UplinkFlags struct {
 	Identity identity.Config
 	uplink.Config
+
+	libuplink.Uplink
 }
 
 var cfg UplinkFlags
@@ -62,6 +65,13 @@ func (c *UplinkFlags) Metainfo(ctx context.Context) (storj.Metainfo, streams.Sto
 	}
 
 	return c.GetMetainfo(ctx, identity)
+}
+
+// Project returns a Project that can be acted on like Metainfo allowed
+func (c *UplinkFlags) Project(ctx context.Context) (*Project, error) {
+	c.Uplink = libuplink.NewUplink(identity, c.Config.Client.SatelliteAddr, c.Config)
+
+	return c.Uplink.Access(ctx, libuplink.Permissions{})
 }
 
 func convertError(err error, path fpath.FPath) error {
