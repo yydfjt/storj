@@ -77,6 +77,7 @@ func (transport *Transport) DialNode(ctx context.Context, node *pb.Node, opts ..
 		grpc.WithContextDialer(dialLeakCheck),
 		grpc.FailOnNonTempDialError(true),
 		grpc.WithUnaryInterceptor(InvokeTimeout{transport.requestTimeout}.Intercept),
+		grpc.WithContextDialer((&diagnosticNode{transport.tlsOpts.Ident.ID, debug.Stack()}).DialContext),
 	}, opts...)
 
 	timedCtx, cancel := context.WithTimeout(ctx, defaultDialTimeout)
@@ -110,6 +111,7 @@ func (transport *Transport) DialAddress(ctx context.Context, address string, opt
 		grpc.WithContextDialer(dialLeakCheck),
 		grpc.FailOnNonTempDialError(true),
 		grpc.WithUnaryInterceptor(InvokeTimeout{transport.requestTimeout}.Intercept),
+		grpc.WithContextDialer((&diagnosticNode{transport.tlsOpts.Ident.ID, debug.Stack()}).DialContext),
 	}, opts...)
 
 	timedCtx, cancel := context.WithTimeout(ctx, defaultDialTimeout)
