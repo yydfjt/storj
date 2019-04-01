@@ -80,3 +80,16 @@ func createData(planet *testplanet.Planet, atRest float64, bw []int64) (nodeData
 	}
 	return nodeData, bwTotals
 }
+
+
+func TestRollup(t *testing.T) {
+
+}
+
+func TestRollupStorage(t *testing.T){
+
+}
+
+func TestRollupBW(t *testing.T) {
+	
+}
