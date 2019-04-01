@@ -4,11 +4,3 @@
 package tally_test
 
 import "testing"
-
-func TestTally(t *testing.T) {
- // TODO
-}
-
-func TestCalculateAtRestData(t *testing.T) {
-	//TODO: test calculateAtRestData for both SN and buckets
-}
