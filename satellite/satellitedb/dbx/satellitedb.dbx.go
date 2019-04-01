@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -3418,10 +3417,54 @@ func __sqlbundle_Render(dialect __sqlbundle_Dialect, sql __sqlbundle_SQL, ops ..
 	return dialect.Rebind(out)
 }
 
-var __sqlbundle_reSpace = regexp.MustCompile(`\s+`)
+func __sqlbundle_flattenSQL(x string) string {
+	// trim whitespace from beginning and end
+	s, e := 0, len(x)-1
+	for s < len(x) && (x[s] == ' ' || x[s] == '\t' || x[s] == '\n') {
+		s++
+	}
+	for s <= e && (x[e] == ' ' || x[e] == '\t' || x[e] == '\n') {
+		e--
+	}
+	if s > e {
+		return ""
+	}
+	x = x[s : e+1]
 
-func __sqlbundle_flattenSQL(s string) string {
-	return strings.TrimSpace(__sqlbundle_reSpace.ReplaceAllString(s, " "))
+	// check for whitespace that needs fixing
+	wasSpace := false
+	for i := 0; i < len(x); i++ {
+		r := x[i]
+		justSpace := r == ' '
+		if (wasSpace && justSpace) || r == '\t' || r == '\n' {
+			// whitespace detected, start writing a new string
+			var result strings.Builder
+			result.Grow(len(x))
+			if wasSpace {
+				result.WriteString(x[:i-1])
+			} else {
+				result.WriteString(x[:i])
+			}
+			for p := i; p < len(x); p++ {
+				for p < len(x) && (x[p] == ' ' || x[p] == '\t' || x[p] == '\n') {
+					p++
+				}
+				result.WriteByte(' ')
+
+				start := p
+				for p < len(x) && !(x[p] == ' ' || x[p] == '\t' || x[p] == '\n') {
+					p++
+				}
+				result.WriteString(x[start:p])
+			}
+
+			return result.String()
+		}
+		wasSpace = justSpace
+	}
+
+	// no problematic whitespace found
+	return x
 }
 
 // this type is specially named to match up with the name returned by the
@@ -3500,6 +3543,8 @@ type __sqlbundle_Condition struct {
 func (*__sqlbundle_Condition) private() {}
 
 func (c *__sqlbundle_Condition) Render() string {
+	// TODO(jeff): maybe check if we can use placeholders instead of the
+	// literal null: this would make the templates easier.
 
 	switch {
 	case c.Equal && c.Null:
@@ -4862,6 +4907,39 @@ func (obj *postgresImpl) Find_StoragenodeBandwidthRollup_By_StoragenodeId_And_In
 
 }
 
+func (obj *postgresImpl) All_StoragenodeBandwidthRollup_By_IntervalStart_GreaterOrEqual(ctx context.Context,
+	storagenode_bandwidth_rollup_interval_start_greater_or_equal StoragenodeBandwidthRollup_IntervalStart_Field) (
+	rows []*StoragenodeBandwidthRollup, err error) {
+
+	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.interval_seconds, storagenode_bandwidth_rollups.action, storagenode_bandwidth_rollups.allocated, storagenode_bandwidth_rollups.settled FROM storagenode_bandwidth_rollups WHERE storagenode_bandwidth_rollups.interval_start >= ?")
+
+	var __values []interface{}
+	__values = append(__values, storagenode_bandwidth_rollup_interval_start_greater_or_equal.value())
+
+	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
+	obj.logStmt(__stmt, __values...)
+
+	__rows, err := obj.driver.Query(__stmt, __values...)
+	if err != nil {
+		return nil, obj.makeErr(err)
+	}
+	defer __rows.Close()
+
+	for __rows.Next() {
+		storagenode_bandwidth_rollup := &StoragenodeBandwidthRollup{}
+		err = __rows.Scan(&storagenode_bandwidth_rollup.StoragenodeId, &storagenode_bandwidth_rollup.IntervalStart, &storagenode_bandwidth_rollup.IntervalSeconds, &storagenode_bandwidth_rollup.Action, &storagenode_bandwidth_rollup.Allocated, &storagenode_bandwidth_rollup.Settled)
+		if err != nil {
+			return nil, obj.makeErr(err)
+		}
+		rows = append(rows, storagenode_bandwidth_rollup)
+	}
+	if err := __rows.Err(); err != nil {
+		return nil, obj.makeErr(err)
+	}
+	return rows, nil
+
+}
+
 func (obj *postgresImpl) Get_CertRecord_By_Id(ctx context.Context,
 	certRecord_id CertRecord_Id_Field) (
 	certRecord *CertRecord, err error) {
@@ -5643,33 +5721,6 @@ func (obj *postgresImpl) Delete_SerialNumber_By_ExpiresAt_LessOrEqual(ctx contex
 	}
 
 	return count, nil
-
-}
-
-func (obj *postgresImpl) Delete_UsedSerial_By_SerialNumberId_And_StorageNodeId(ctx context.Context,
-	used_serial_serial_number_id UsedSerial_SerialNumberId_Field,
-	used_serial_storage_node_id UsedSerial_StorageNodeId_Field) (
-	deleted bool, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("DELETE FROM used_serials WHERE used_serials.serial_number_id = ? AND used_serials.storage_node_id = ?")
-
-	var __values []interface{}
-	__values = append(__values, used_serial_serial_number_id.value(), used_serial_storage_node_id.value())
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, __values...)
-
-	__res, err := obj.driver.Exec(__stmt, __values...)
-	if err != nil {
-		return false, obj.makeErr(err)
-	}
-
-	__count, err := __res.RowsAffected()
-	if err != nil {
-		return false, obj.makeErr(err)
-	}
-
-	return __count > 0, nil
 
 }
 
@@ -7288,6 +7339,39 @@ func (obj *sqlite3Impl) Find_StoragenodeBandwidthRollup_By_StoragenodeId_And_Int
 
 }
 
+func (obj *sqlite3Impl) All_StoragenodeBandwidthRollup_By_IntervalStart_GreaterOrEqual(ctx context.Context,
+	storagenode_bandwidth_rollup_interval_start_greater_or_equal StoragenodeBandwidthRollup_IntervalStart_Field) (
+	rows []*StoragenodeBandwidthRollup, err error) {
+
+	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.interval_seconds, storagenode_bandwidth_rollups.action, storagenode_bandwidth_rollups.allocated, storagenode_bandwidth_rollups.settled FROM storagenode_bandwidth_rollups WHERE storagenode_bandwidth_rollups.interval_start >= ?")
+
+	var __values []interface{}
+	__values = append(__values, storagenode_bandwidth_rollup_interval_start_greater_or_equal.value())
+
+	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
+	obj.logStmt(__stmt, __values...)
+
+	__rows, err := obj.driver.Query(__stmt, __values...)
+	if err != nil {
+		return nil, obj.makeErr(err)
+	}
+	defer __rows.Close()
+
+	for __rows.Next() {
+		storagenode_bandwidth_rollup := &StoragenodeBandwidthRollup{}
+		err = __rows.Scan(&storagenode_bandwidth_rollup.StoragenodeId, &storagenode_bandwidth_rollup.IntervalStart, &storagenode_bandwidth_rollup.IntervalSeconds, &storagenode_bandwidth_rollup.Action, &storagenode_bandwidth_rollup.Allocated, &storagenode_bandwidth_rollup.Settled)
+		if err != nil {
+			return nil, obj.makeErr(err)
+		}
+		rows = append(rows, storagenode_bandwidth_rollup)
+	}
+	if err := __rows.Err(); err != nil {
+		return nil, obj.makeErr(err)
+	}
+	return rows, nil
+
+}
+
 func (obj *sqlite3Impl) Get_CertRecord_By_Id(ctx context.Context,
 	certRecord_id CertRecord_Id_Field) (
 	certRecord *CertRecord, err error) {
@@ -8152,33 +8236,6 @@ func (obj *sqlite3Impl) Delete_SerialNumber_By_ExpiresAt_LessOrEqual(ctx context
 
 }
 
-func (obj *sqlite3Impl) Delete_UsedSerial_By_SerialNumberId_And_StorageNodeId(ctx context.Context,
-	used_serial_serial_number_id UsedSerial_SerialNumberId_Field,
-	used_serial_storage_node_id UsedSerial_StorageNodeId_Field) (
-	deleted bool, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("DELETE FROM used_serials WHERE used_serials.serial_number_id = ? AND used_serials.storage_node_id = ?")
-
-	var __values []interface{}
-	__values = append(__values, used_serial_serial_number_id.value(), used_serial_storage_node_id.value())
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, __values...)
-
-	__res, err := obj.driver.Exec(__stmt, __values...)
-	if err != nil {
-		return false, obj.makeErr(err)
-	}
-
-	__count, err := __res.RowsAffected()
-	if err != nil {
-		return false, obj.makeErr(err)
-	}
-
-	return __count > 0, nil
-
-}
-
 func (obj *sqlite3Impl) Delete_CertRecord_By_Id(ctx context.Context,
 	certRecord_id CertRecord_Id_Field) (
 	deleted bool, err error) {
@@ -8835,6 +8892,16 @@ func (rx *Rx) All_Project_By_ProjectMember_MemberId_OrderBy_Asc_Project_Name(ctx
 	return tx.All_Project_By_ProjectMember_MemberId_OrderBy_Asc_Project_Name(ctx, project_member_member_id)
 }
 
+func (rx *Rx) All_StoragenodeBandwidthRollup_By_IntervalStart_GreaterOrEqual(ctx context.Context,
+	storagenode_bandwidth_rollup_interval_start_greater_or_equal StoragenodeBandwidthRollup_IntervalStart_Field) (
+	rows []*StoragenodeBandwidthRollup, err error) {
+	var tx *Tx
+	if tx, err = rx.getTx(ctx); err != nil {
+		return
+	}
+	return tx.All_StoragenodeBandwidthRollup_By_IntervalStart_GreaterOrEqual(ctx, storagenode_bandwidth_rollup_interval_start_greater_or_equal)
+}
+
 func (rx *Rx) Create_AccountingRaw(ctx context.Context,
 	accounting_raw_node_id AccountingRaw_NodeId_Field,
 	accounting_raw_interval_end_time AccountingRaw_IntervalEndTime_Field,
@@ -9187,17 +9254,6 @@ func (rx *Rx) Delete_SerialNumber_By_ExpiresAt_LessOrEqual(ctx context.Context,
 	}
 	return tx.Delete_SerialNumber_By_ExpiresAt_LessOrEqual(ctx, serial_number_expires_at_less_or_equal)
 
-}
-
-func (rx *Rx) Delete_UsedSerial_By_SerialNumberId_And_StorageNodeId(ctx context.Context,
-	used_serial_serial_number_id UsedSerial_SerialNumberId_Field,
-	used_serial_storage_node_id UsedSerial_StorageNodeId_Field) (
-	deleted bool, err error) {
-	var tx *Tx
-	if tx, err = rx.getTx(ctx); err != nil {
-		return
-	}
-	return tx.Delete_UsedSerial_By_SerialNumberId_And_StorageNodeId(ctx, used_serial_serial_number_id, used_serial_storage_node_id)
 }
 
 func (rx *Rx) Delete_User_By_Id(ctx context.Context,
@@ -9579,6 +9635,10 @@ type Methods interface {
 		project_member_member_id ProjectMember_MemberId_Field) (
 		rows []*Project, err error)
 
+	All_StoragenodeBandwidthRollup_By_IntervalStart_GreaterOrEqual(ctx context.Context,
+		storagenode_bandwidth_rollup_interval_start_greater_or_equal StoragenodeBandwidthRollup_IntervalStart_Field) (
+		rows []*StoragenodeBandwidthRollup, err error)
+
 	Create_AccountingRaw(ctx context.Context,
 		accounting_raw_node_id AccountingRaw_NodeId_Field,
 		accounting_raw_interval_end_time AccountingRaw_IntervalEndTime_Field,
@@ -9753,11 +9813,6 @@ type Methods interface {
 	Delete_SerialNumber_By_ExpiresAt_LessOrEqual(ctx context.Context,
 		serial_number_expires_at_less_or_equal SerialNumber_ExpiresAt_Field) (
 		count int64, err error)
-
-	Delete_UsedSerial_By_SerialNumberId_And_StorageNodeId(ctx context.Context,
-		used_serial_serial_number_id UsedSerial_SerialNumberId_Field,
-		used_serial_storage_node_id UsedSerial_StorageNodeId_Field) (
-		deleted bool, err error)
 
 	Delete_User_By_Id(ctx context.Context,
 		user_id User_Id_Field) (
