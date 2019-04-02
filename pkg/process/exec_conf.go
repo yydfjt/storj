@@ -22,6 +22,8 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	monkit "gopkg.in/spacemonkeygo/monkit.v2"
+
+	"storj.io/storj/internal/version"
 )
 
 // ExecuteWithConfig runs a Cobra command with the provided default config
@@ -33,13 +35,15 @@ func ExecuteWithConfig(cmd *cobra.Command, defaultConfig string) {
 // Exec runs a Cobra command. If a "config" flag is defined it will be parsed
 // and loaded using viper.
 func Exec(cmd *cobra.Command) {
-	exe, err := os.Executable()
-	if err == nil {
-		cmd.Use = exe
+	if cmd.Use != "" {
+		exe, err := os.Executable()
+		if err == nil {
+			cmd.Use = exe
+		}
 	}
 
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
-	cleanup(cmd)
+	cleanup(cmd, cmd.Use)
 	_ = cmd.Execute()
 }
 
@@ -140,9 +144,9 @@ func Ctx(cmd *cobra.Command) context.Context {
 	return ctx
 }
 
-func cleanup(cmd *cobra.Command) {
+func cleanup(cmd *cobra.Command, processName string) {
 	for _, ccmd := range cmd.Commands() {
-		cleanup(ccmd)
+		cleanup(ccmd, processName)
 	}
 	if cmd.Run != nil {
 		panic("Please use cobra's RunE instead of Run")
@@ -237,6 +241,13 @@ func cleanup(cmd *cobra.Command) {
 			delete(contexts, cmd)
 			contextMtx.Unlock()
 		}()
+
+		err = version.Check(ctx, processName)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Process is out of date! Please upgrade.\n%v\n", err)
+			_ = logger.Sync()
+			os.Exit(1)
+		}
 
 		err = internalRun(cmd, args)
 		if err != nil {
